@@ -14,32 +14,53 @@ from apa102_pi.driver import apa102
 import octoprint.plugin
 import flask
 
+NUM_LED = 10
+
 class AwesomeKarmenLedPlugin(octoprint.plugin.SettingsPlugin,
     octoprint.plugin.AssetPlugin,
     octoprint.plugin.TemplatePlugin,
     octoprint.plugin.StartupPlugin,
+    octoprint.plugin.ShutdownPlugin,
     octoprint.plugin.SimpleApiPlugin
 ):
 
     def on_after_startup(self):
-        self._logger.info(self._identifier)
-        self._logger.info("Hello World!")
+        self.led_init()
+        self.set_leds([(255, 255, 255)])
+
+    def on_shutdown(self):
+        self.strip.clear_strip()
 
     def get_api_commands(self):
         return dict(
-            command2=["set_led"]
+            set_led=["color"]
         )
 
     def on_api_command(self, command, data):
-        self.logger.debug("incoming request")
+        self._logger.debug("incoming request")
         if command == "set_led":
             try:
-                # con = http.client.HTTPConnection("127.0.0.1", 9091)
-                # con.request('POST', '/set_led', json.dumps(data))
                 self._logger.info(f"Karmen LED request: {data}")
+                self.set_single_color(data["color"])
                 return flask.jsonify({"status": "OK"})
-            except:
-                return flask.jsonify({"status": "NOK"})
+            except Exception as e:
+                self._logger.error(e)
+                return flask.jsonify({"error": e})
+
+    def led_init(self):
+        self.strip = apa102.APA102(num_led=NUM_LED, order='rgb')
+        self.strip.set_global_brightness(255)
+        self.strip.clear_strip()
+
+    def set_leds(self, colors):
+        for i, c in enumerate(colors):
+            self.strip.set_pixel(i, c[0], c[1], c[2])
+        self.strip.show()
+
+    def set_single_color(self, color):
+        for i in range(NUM_LED):
+            self.strip.set_pixel(i, color[0], color[1], color[2])
+        self.strip.show()
 
     def on_api_get(self, request):
         self._logger.debug("incoming GET request")

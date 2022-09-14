@@ -33,7 +33,7 @@ plugin_url = "https://github.com/fragaria/karmen-led-octoprint-plugin"
 plugin_license = "MIT"
 
 # Any additional requirements besides OctoPrint should be listed here
-plugin_requires = []
+plugin_requires = ["apa102-pi"]
 
 ### --------------------------------------------------------------------------------------------------------------------
 ### More advanced options that you usually shouldn't have to touch follow after this point
