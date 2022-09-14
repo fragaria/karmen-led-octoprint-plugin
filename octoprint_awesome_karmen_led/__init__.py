@@ -25,8 +25,12 @@ class AwesomeKarmenLedPlugin(octoprint.plugin.SettingsPlugin,
 ):
 
     def on_after_startup(self):
+        self._logger.debug("Led initialized")
+        self._logger.warning(self._settings)
         self.led_init()
-        self.set_leds([(255, 255, 255)])
+        init_color = (0, 255, 0)
+        self.set_single_color(init_color)
+        self.last_color = init_color
 
     def on_shutdown(self):
         self.strip.clear_strip()
@@ -55,23 +59,23 @@ class AwesomeKarmenLedPlugin(octoprint.plugin.SettingsPlugin,
     def set_leds(self, colors):
         for i, c in enumerate(colors):
             self.strip.set_pixel(i, c[0], c[1], c[2])
+            self.last_color = c
         self.strip.show()
 
     def set_single_color(self, color):
         for i in range(NUM_LED):
             self.strip.set_pixel(i, color[0], color[1], color[2])
         self.strip.show()
+        self.last_color = color
 
     def on_api_get(self, request):
         self._logger.debug("incoming GET request")
-        return flask.jsonify(foo="bar")
+        return flask.jsonify(color=self.last_color)
 
     ##~~ SettingsPlugin mixin
 
     def get_settings_defaults(self):
-        return {
-            # put your plugin's default settings here
-        }
+        return dict(ready=True)
 
     ##~~ AssetPlugin mixin
 
