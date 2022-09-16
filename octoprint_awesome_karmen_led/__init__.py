@@ -14,47 +14,49 @@ from apa102_pi.driver import apa102
 import octoprint.plugin
 import flask
 
-NUM_LED = 10
-
 class AwesomeKarmenLedPlugin(octoprint.plugin.SettingsPlugin,
     octoprint.plugin.AssetPlugin,
     octoprint.plugin.TemplatePlugin,
     octoprint.plugin.StartupPlugin,
     octoprint.plugin.ShutdownPlugin,
-    octoprint.plugin.SimpleApiPlugin
+    octoprint.plugin.SimpleApiPlugin,
+    octoprint.plugin.EventHandlerPlugin,
 ):
 
     def on_after_startup(self):
-        self._logger.debug("Led initialized")
-        self._logger.warning(self._settings)
         self.led_init()
-        init_color = (0, 255, 0)
+        init_color = (0, 16, 0)
         self.set_single_color(init_color)
-        self.last_color = init_color
+
 
     def on_shutdown(self):
         self.strip.clear_strip()
+
 
     def get_api_commands(self):
         return dict(
             set_led=["color"]
         )
 
+
     def on_api_command(self, command, data):
         self._logger.debug("incoming request")
-        if command == "set_led":
-            try:
-                self._logger.info(f"Karmen LED request: {data}")
-                self.set_single_color(data["color"])
-                return flask.jsonify({"status": "OK"})
-            except Exception as e:
-                self._logger.error(e)
-                return flask.jsonify({"error": e})
+        if self._settings.get(["mode"]) == "api":
+            if command == "set_led":
+                try:
+                    self._logger.info(f"Karmen LED request: {data}")
+                    self.set_single_color(data["color"])
+                    return flask.jsonify({"status": "OK"})
+                except Exception as e:
+                    self._logger.error(e)
+                    return flask.jsonify({"error": e})
+
 
     def led_init(self):
-        self.strip = apa102.APA102(num_led=NUM_LED, order='rgb')
+        self.strip = apa102.APA102(num_led=int(self.led_count), order='rgb')
         self.strip.set_global_brightness(255)
         self.strip.clear_strip()
+
 
     def set_leds(self, colors):
         for i, c in enumerate(colors):
@@ -62,20 +64,48 @@ class AwesomeKarmenLedPlugin(octoprint.plugin.SettingsPlugin,
             self.last_color = c
         self.strip.show()
 
+
     def set_single_color(self, color):
-        for i in range(NUM_LED):
+        for i in range(int(self.led_count)):
             self.strip.set_pixel(i, color[0], color[1], color[2])
         self.strip.show()
         self.last_color = color
 
+
     def on_api_get(self, request):
-        self._logger.debug("incoming GET request")
         return flask.jsonify(color=self.last_color)
+
 
     ##~~ SettingsPlugin mixin
 
     def get_settings_defaults(self):
-        return dict(ready=True)
+        return {
+            "ready": True,
+            "mode": "api",
+            "led_count": 2,
+        }
+
+
+    def on_settings_save(self, data):
+        if data.get("led_count"):
+            data["led_count"] = int(data["led_count"])
+        octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
+
+
+    def get_template_configs(self):
+        return [dict(type="settings", custom_bindings=False)]
+
+
+    def get_template_vars(self):
+        return {
+            "mode": self._settings.get(["mode"]),
+            "led_count": self._settings.get(["led_count"]),
+        }
+
+
+    @property
+    def led_count(self):
+        return int(self._settings.get(["led_count"]))
 
     ##~~ AssetPlugin mixin
 
@@ -111,10 +141,36 @@ class AwesomeKarmenLedPlugin(octoprint.plugin.SettingsPlugin,
         }
 
 
+    @property
+    def event_color_table(self):
+        return {
+            # "Startup": (32, 32, 0), -- emited before settings are ready, commented out for now
+            "Shutdown": (32, 0, 0),
+            "Connecting": (32, 16, 0),
+            "Connected": (0, 64, 0),
+            "Disconnecting": (32, 32, 0),
+            "Disconnected": (32, 32, 0),
+            "Error": (128, 0, 0),
+            "PrintStarted": (0, 128, 0),
+            "PrintFailed": (128, 0, 0),
+            "PrintDone": (128, 128, 0),
+            "PrintCancelling": (0, 0, 128),
+            "PrintCancelled": (128, 128, 0),
+            "PrintPaused": (128, 0, 128),
+            "PrintResumed": (0, 128, 0),
+        }
+
+
+    def on_event(self, event, payload):
+        if self._settings.get(["mode"]) == "auto":
+            color = self.event_color_table.get(event)
+            if color:            
+                self.set_single_color(color)
+
 # If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
 # ("OctoPrint-PluginSkeleton"), you may define that here. Same goes for the other metadata derived from setup.py that
 # can be overwritten via __plugin_xyz__ control properties. See the documentation for that.
-__plugin_name__ = "Awesome Karmen LED Plugin"
+__plugin_name__ = "Awesome Karmen LED"
 
 
 # Set the Python version your plugin is compatible with below. Recommended is Python 3 only for all new plugins.
