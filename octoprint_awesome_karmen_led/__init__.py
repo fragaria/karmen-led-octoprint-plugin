@@ -1,6 +1,7 @@
 # coding=utf-8
 from __future__ import absolute_import
-from apa102_pi.driver import apa102
+from re import L
+
 
 
 ### (Don't forget to remove me)
@@ -14,6 +15,24 @@ from apa102_pi.driver import apa102
 import octoprint.plugin
 import flask
 
+class DummyAPA102():
+    def __init__(self, logger):
+        self.logger = logger
+        
+
+    def set_pixel(self, i, r, g, b):
+        self.logger.debug(f"Setting led number {i} to {r}-{g}-{b}")
+
+    def show(self):
+        self.logger.debug(f"LED show called")
+
+    def set_global_brightness(self, value):
+        self.logger.debug(f"Setting brightness to {value}")
+
+    def clear_strip(self):
+        self.logger.debug(f"Clear LED strip")
+
+
 class AwesomeKarmenLedPlugin(octoprint.plugin.SettingsPlugin,
     octoprint.plugin.AssetPlugin,
     octoprint.plugin.TemplatePlugin,
@@ -24,7 +43,17 @@ class AwesomeKarmenLedPlugin(octoprint.plugin.SettingsPlugin,
 ):
 
     def on_after_startup(self):
-        self.led_init()
+        try:
+            from apa102_pi.driver import apa102
+            self.strip = apa102.APA102(num_led=int(self.led_count), order='rgb')
+        except NotImplementedError as e:
+            self._logger.warning("APA102_py cannot be initialized. Using log for output. This plugin works on Raspberry Pi only.")
+            self.strip = DummyAPA102(self._logger)
+        except Exception as e:
+            self._logger.warning("APA102_py cannot be initialized. Using log for output. Check if SPI interface is enabled.")
+            self.strip = DummyAPA102(self._logger)
+        self.strip.set_global_brightness(255)
+        self.strip.clear_strip()
         init_color = (0, 16, 0)
         self.set_single_color(init_color)
 
@@ -50,12 +79,6 @@ class AwesomeKarmenLedPlugin(octoprint.plugin.SettingsPlugin,
                 except Exception as e:
                     self._logger.error(e)
                     return flask.jsonify({"error": e})
-
-
-    def led_init(self):
-        self.strip = apa102.APA102(num_led=int(self.led_count), order='rgb')
-        self.strip.set_global_brightness(255)
-        self.strip.clear_strip()
 
 
     def set_leds(self, colors):
