@@ -14,7 +14,7 @@ plugin_package = "octoprint_awesome_karmen_led"
 plugin_name = "OctoPrint-Awesome-Karmen-LED"
 
 # The plugin's version. Can be overwritten within OctoPrint's internal data via __plugin_version__ in the plugin module
-plugin_version = "0.1.0"
+plugin_version = "0.1.1"
 
 # The plugin's description. Can be overwritten within OctoPrint's internal data via __plugin_description__ in the plugin
 # module
