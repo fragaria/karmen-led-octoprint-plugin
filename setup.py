@@ -21,10 +21,10 @@ plugin_version = "0.1.1"
 plugin_description = """Control APA102 led connected to RPI"""
 
 # The plugin's author. Can be overwritten within OctoPrint's internal data via __plugin_author__ in the plugin module
-plugin_author = "Pavel Vojacek"
+plugin_author = "Karmen.tech"
 
 # The plugin's author's mail address.
-plugin_author_email = "pavel.vojacek@fragaria.cz"
+plugin_author_email = "karmen@karmen.tech"
 
 # The plugin's homepage URL. Can be overwritten within OctoPrint's internal data via __plugin_url__ in the plugin module
 plugin_url = "https://github.com/fragaria/karmen-led-octoprint-plugin"
@@ -33,7 +33,7 @@ plugin_url = "https://github.com/fragaria/karmen-led-octoprint-plugin"
 plugin_license = "MIT"
 
 # Any additional requirements besides OctoPrint should be listed here
-plugin_requires = ["apa102-pi"]
+plugin_requires = ["apa102-pi", "RPi.GPIO"]
 
 ### --------------------------------------------------------------------------------------------------------------------
 ### More advanced options that you usually shouldn't have to touch follow after this point
